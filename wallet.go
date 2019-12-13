@@ -73,9 +73,9 @@ func (w *WalletKeyPair) GetAddress() string {
 func IsValidAddress(address string) bool {
 	//1.将输入的地址进行解码到25字节
 	decodeInfo := base58.Decode(address)
-	if len(decodeInfo) != 25 {
-		return false
-	}
+	//if len(decodeInfo) != 25 {
+	//	return false
+	//}
 	payload := decodeInfo[:len(decodeInfo)-4]
 	//2.取出前21字节，运行CheckSum，得到checksum1
 	checksum1 := CheckSum(payload)

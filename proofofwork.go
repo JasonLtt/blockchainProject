@@ -100,6 +100,7 @@ func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 		uintToByte(block.TimeStamp),
 		uintToByte(block.Difficulty),
 		uintToByte(nonce),
+		uintToByte(block.Height),
 	}
 
 	//真实的比特币中，是对区块头进行hash运算，不对整个区块进行hash运算

@@ -38,6 +38,8 @@ type Block struct {
 	Transactions []*Transaction
 
 	Hash []byte //当前区块的哈希，区块本不存在哈希，只是为了方便，将哈希添加进来
+
+	Height uint64 //区块链的长度
 }
 
 //模拟MerKleRoot，只是简单的全部拼接，不是利用二叉树进行hash运算
@@ -60,12 +62,12 @@ func (block *Block) HashTransaction() {
 		txid := tx.TXid
 		data = append(data, txid)
 	}
-	root:=NewMerkleTree(data)
-	block.MerKleRoot =root.RootNode.Data[:]
+	root := NewMerkleTree(data)
+	block.MerKleRoot = root.RootNode.Data[:]
 }
 
 //创建区块
-func NewBlock(txs []*Transaction /*data string*/, prevblockhash []byte) *Block {
+func NewBlock(txs []*Transaction /*data string*/, prevblockhash []byte, height uint64) *Block {
 	block := Block{
 		Version:       00,
 		PrevBlockHash: prevblockhash,
@@ -76,6 +78,7 @@ func NewBlock(txs []*Transaction /*data string*/, prevblockhash []byte) *Block {
 		//Data: []byte(data),
 		Transactions: txs,
 		Hash:         []byte{},
+		Height:       height,
 	}
 
 	block.HashTransaction()
@@ -116,6 +119,8 @@ func Deserialize(data []byte) *Block {
 
 	return &block
 }
+
+
 
 ////实现哈希
 //func (block *Block) SetHash() {

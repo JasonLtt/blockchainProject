@@ -47,11 +47,10 @@ type TXOutput struct {
 func (output *TXOutput) Lock(address string) {
 	//address->public key hash
 	decodeInfo := base58.Decode(address)
-
+	//fmt.Printf("len:%d\n", len(decodeInfo))
 	pubKeyHash := decodeInfo[1 : len(decodeInfo)-4]
 
 	output.PubKeyHash = pubKeyHash
-
 }
 
 //创建新的交易输出 包含转账金额和公钥哈希（“锁定脚本”）
@@ -84,9 +83,16 @@ func (tx *Transaction) SetTXID() {
 const reward = 12.5
 
 //实现挖矿交易
-//特点：只有输出，没有有效的输入(不要id，索引，签名）
 func NewCoinBaseTx(miner string, data string) *Transaction {
-	//TODO
+	if data == "" {
+		randData := make([]byte, 20)
+		_, err := rand.Read(randData)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		data = fmt.Sprintf("新coinbase的data：%x\n", randData)
+	}
 	inputs := []TXInput{{nil, -1, nil, []byte(data)}}
 	//outputs := []TXOutput{{12.5, miner}}
 	output := NewTXOuput(reward, miner)
@@ -110,11 +116,12 @@ func (tx *Transaction) IsCoinbase() bool {
 }
 
 //创建普通交易
-func NewTransaction(from string, to string, amount float64, bc *BlockChain) *Transaction {
-	//1.打开钱包
-	ws := NewWallets()
-
-	wallet := ws.WalletsMap[from]
+func NewTransaction(wallet *WalletKeyPair, to string, amount float64, bc *BlockChain, utxoset *UTXOset) *Transaction {
+	//1.打开钱包(提前传入钱包）
+	//ws, err := NewWallets()
+	//
+	//wallet := ws.WalletsMap[from]
+	from := wallet.GetAddress()
 	if wallet == nil {
 		fmt.Printf("%s 的私钥不存在，交易创建失败!\n", from)
 		return nil
@@ -127,7 +134,7 @@ func NewTransaction(from string, to string, amount float64, bc *BlockChain) *Tra
 	//1.遍历账本，找到属于付款人的合适的金额，把这个outputs找到
 	utxos := make(map[string][]int64) //标识能用的utxo
 	var resValue float64              //这些utxo存储的金额
-	utxos, resValue = bc.FindNeedUtxos(pubKeyHash, amount)
+	utxos, resValue = utxoset.FindNeedUtxos(pubKeyHash, amount)
 
 	//2.如果钱不足以转账,交易失败
 	if resValue < amount {
@@ -306,3 +313,27 @@ func (tx *Transaction) String() string {
 
 }
 
+//对交易进行序列化
+func (tx *Transaction) Serialize() []byte {
+	var encoded bytes.Buffer
+
+	enc := gob.NewEncoder(&encoded)
+	err := enc.Encode(tx)
+	if err != nil {
+		log.Panic(err)
+	}
+	return encoded.Bytes()
+}
+
+//对tx进行反序列化
+func DeserializeTransaction(data []byte) Transaction {
+	var transaction Transaction
+
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	err := decoder.Decode(&transaction)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return transaction
+}
